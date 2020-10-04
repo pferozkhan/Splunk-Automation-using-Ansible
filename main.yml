@@ -1,0 +1,74 @@
+---
+
+- name: Ensure {{ splunk_uf_home }} dir exists
+  file:
+    path: "{{ splunk_uf_home }}"
+    state: directory
+    mode: 0755  
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+  become: yes
+
+- name: -initd- Stop the UF
+  command: "{{ splunk_uf_home }}/bin/splunk stop"
+  become: yes  
+  become_user: "{{ os_user }}"  
+
+
+- name: Check for the presence of /home/{{ os_user }}/{{ splunk_uf_tgz }}
+  stat: 
+    path: /home/{{ os_user }}/{{ splunk_uf_tgz }}
+    get_checksum: yes  
+    checksum_algorithm: "{{ splunk_uf_tgz_checksum_alg }}"
+  register: splunk_uf_tgz_downloaded_flag
+  become: yes
+
+- name: Download (wget) {{ splunk_uf_tgz }}
+  get_url:
+    url: https://www.splunk.com/bin/splunk/DownloadActivityServlet?architecture=x86_64&platform=linux&version={{ splunk_uf_version }}&product=universalforwarder&filename={{ splunk_uf_tgz }}&wget=true
+    checksum: "{{ splunk_uf_tgz_checksum_alg }}:{{ splunk_uf_tgz_checksum }}"
+    dest: /home/{{ os_user }}
+    mode: 0640  
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+    timeout: 20
+  become: yes
+  when: splunk_uf_tgz_downloaded_flag.stat.exists == False
+
+- name: Extract {{ splunk_uf_tgz }} to {{ splunk_uf_home }} to upgrade
+  unarchive:
+    src: /home/{{ os_user }}/{{ splunk_uf_tgz }}
+    dest: "{{ splunk_uf_home }}/.."
+    remote_src: yes
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"    
+  become: yes
+
+- name: Set {{ splunk_uf_home }} owner & group recursively
+  file:
+    path: "{{ splunk_uf_home }}"
+    state: directory
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+    recurse: yes
+  become: yes  
+
+
+- name: -initd- Start Splunk UF
+  command: "{{ splunk_uf_home }}/bin/splunk start --no-prompt --answer-yes --accept-license"
+  become: yes  
+  become_user: "{{ os_user }}"
+
+- name: -initd- Splunk enable boot-start
+  command: "{{ splunk_uf_home }}/bin/splunk enable boot-start -user {{ os_user }} --no-prompt --answer-yes --accept-license"
+  become: yes  
+
+  
+- name: "Create symlink to splunk in /usr/local/bin"
+  file:
+    src: "{{ splunk_uf_home }}/bin/splunk"
+    path: /usr/local/bin/splunk
+    state: link
+    owner: "{{ os_user }}"
+    group: "{{ os_group }}"
+  become: yes

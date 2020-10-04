@@ -1,0 +1,15 @@
+---
+
+- hosts: all
+
+  tasks:
+
+    - name: ReStart Splunk forwarder service.
+      remote_user: ubuntu 
+      become: yes
+      become_method: sudo
+      become_user: root
+      shell:
+        /opt/splunkforwarder/bin/splunk restart
+
+...

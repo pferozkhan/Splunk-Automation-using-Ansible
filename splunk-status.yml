@@ -1,0 +1,23 @@
+---
+
+- hosts: all
+
+  tasks:
+
+    - name: Status Splunk forwarder service.
+      remote_user: ubuntu 
+      become: yes
+      become_method: sudo
+      become_user: root
+      shell:
+        /opt/splunkforwarder/bin/splunk status
+      register: service_splunk_status
+
+    - name: Report Splunk forwarder Status.
+      remote_user: your_username
+      become: yes
+      become_method: sudo
+      debug:
+         var: service_splunk_status.stdout_lines
+
+...

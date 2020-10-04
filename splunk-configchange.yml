@@ -1,0 +1,41 @@
+---
+
+- hosts: "{{ hosts_prompt }}"
+  
+  vars_prompt:
+    - name: "hosts_prompt"
+      prompt: "hostname or host group need to run with Playbook"
+      private: no
+
+    - name: "src_file"
+      prompt: "file to be copied"
+      private: no
+
+    - name: "src_path"
+      prompt: "source file path"
+      private: no
+
+    - name: "dest_path"
+      prompt: "destination path where the file needs to be copied in the remote host/hosts"
+      private: no
+
+  tasks:
+
+    - name: Rename existing file in the remote host
+      remote_user: ubuntu
+      become: yes
+      become_method: sudo
+      become_user: root
+      command:
+        mv "{{ dest_path }}/{{ src_file }}" "{{ dest_path }}/{{ src_file }}.sample"
+
+    - name: copy files to remote host
+      remote_user: ubuntu
+      become: yes
+      become_method: sudo
+      become_user: root
+      copy:
+        src: "{{ src_path }}/{{ src_file }}" 
+        dest: "{{ dest_path }}"
+
+...
